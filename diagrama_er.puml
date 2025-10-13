@@ -1,0 +1,141 @@
+@startuml RICARDÃO
+' Tablesmith - Diagrama Entidade-Relacionamento (ER) em PlantUML
+
+hide circle
+
+entity "users" as users {
+  * id : UUID <<PK>>
+  --
+  username : VARCHAR(80)
+  email : VARCHAR(200)
+  password_hash : VARCHAR(256)
+  role : VARCHAR(20)
+  avatar_url : TEXT
+  created_at : TIMESTAMP
+  active : BOOLEAN
+}
+
+entity "campaigns" as campaigns {
+  * id : UUID <<PK>>
+  --
+  title : VARCHAR(200)
+  description : TEXT
+  owner_id : UUID <<FK users.id>>
+  created_at : TIMESTAMP
+}
+
+entity "game_sessions" as game_sessions {
+  * id : UUID <<PK>>
+  --
+  title : VARCHAR(200)
+  campaign_id : UUID <<FK campaigns.id>>
+  gm_id : UUID <<FK users.id>>
+  start_time : TIMESTAMP
+  end_time : TIMESTAMP
+  status : VARCHAR(50)
+}
+
+entity "session_participants" as session_participants {
+  * session_id : UUID <<FK game_sessions.id>>
+  * user_id : UUID <<FK users.id>>
+  --
+  role_in_session : VARCHAR(50)
+  connected : BOOLEAN
+  PRIMARY_KEY(session_id, user_id)
+}
+
+entity "characters" as characters {
+  * id : UUID <<PK>>
+  --
+  name : VARCHAR(150)
+  player_id : UUID <<FK users.id>>
+  campaign_id : UUID <<FK campaigns.id>>
+  hp : INTEGER
+  xp : INTEGER
+  attributes : JSONB
+  created_at : TIMESTAMP
+}
+
+entity "maps" as maps {
+  * id : UUID <<PK>>
+  --
+  campaign_id : UUID <<FK campaigns.id>>
+  name : VARCHAR(150)
+  image_url : TEXT
+  grid_size : INTEGER
+}
+
+entity "tokens" as tokens {
+  * id : UUID <<PK>>
+  --
+  map_id : UUID <<FK maps.id>>
+  character_id : UUID <<FK characters.id>>
+  x : NUMERIC
+  y : NUMERIC
+  rotation : NUMERIC
+  visible : BOOLEAN
+}
+
+entity "items" as items {
+  * id : UUID <<PK>>
+  --
+  name : VARCHAR(150)
+  description : TEXT
+  default_quantity : INTEGER
+}
+
+entity "inventories" as inventories {
+  * id : UUID <<PK>>
+  --
+  character_id : UUID <<FK characters.id>> UNIQUE
+}
+
+entity "inventory_items" as inventory_items {
+  * inventory_id : UUID <<FK inventories.id>>
+  * item_id : UUID <<FK items.id>>
+  --
+  quantity : INTEGER
+  PRIMARY_KEY(inventory_id, item_id)
+}
+
+entity "dice_rolls" as dice_rolls {
+  * id : UUID <<PK>>
+  --
+  session_id : UUID <<FK game_sessions.id>>
+  roller_id : UUID <<FK users.id>>
+  expression : VARCHAR(100)
+  result : TEXT
+  rolled_at : TIMESTAMP
+}
+
+entity "chat_messages" as chat_messages {
+  * id : UUID <<PK>>
+  --
+  session_id : UUID <<FK game_sessions.id>>
+  sender_id : UUID <<FK users.id>>
+  content : TEXT
+  sent_at : TIMESTAMP
+}
+
+' Relações (cardinalidades: || = 1, }o{ = many/0..*, etc.)
+users ||--o{ campaigns : owns
+campaigns ||--o{ game_sessions : has
+game_sessions ||--o{ session_participants : includes
+users ||--o{ session_participants : participates
+
+users ||--o{ characters : creates
+campaigns ||--o{ characters : contains
+
+campaigns ||--o{ maps : has
+maps ||--o{ tokens : contains
+characters ||--o{ tokens : represented_by
+
+characters ||--|| inventories : owns
+inventories ||--o{ inventory_items : contains
+inventory_items }o--|| items : item
+
+game_sessions ||--o{ dice_rolls : logs
+game_sessions ||--o{ chat_messages : messages
+users ||--o{ dice_rolls : rolled_by
+users ||--o{ chat_messages : sent_by
+@enduml
