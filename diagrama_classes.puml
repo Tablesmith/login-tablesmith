@@ -1,0 +1,147 @@
+@startuml RICARDÃO
+' Tablesmith - Diagrama de Classes (resumido)
+' Instalar extensão "PlantUML" no VSCode para visualizar
+' Gerar imagem: dentro do arquivo pressionar  "alt+d"
+' Enum de papel do usuário
+enum Role {
+  PLAYER
+  GM
+  ADMIN
+}
+
+class User {
+  +UUID id
+  +String username
+  +String email
+  +String passwordHash
+  +Role role
+  +String avatarUrl
+  +Date createdAt
+  +boolean active
+  --
+  +login()
+  +logout()
+}
+
+class Campaign {
+  +UUID id
+  +String title
+  +String description
+  +UUID ownerId
+  +Date createdAt
+  --
+  +archive()
+}
+
+class GameSession {
+  +UUID id
+  +String title
+  +UUID campaignId
+  +UUID gmId
+  +Date startTime
+  +Date endTime
+  +String status
+  --
+  +startSession()
+  +endSession()
+}
+
+class SessionParticipant {
+  +UUID sessionId
+  +UUID userId
+  +String roleInSession  ' e.g., player, observer
+  +boolean connected
+}
+
+class Character {
+  +UUID id
+  +String name
+  +UUID playerId
+  +UUID campaignId
+  +Map<String,Integer> attributes
+  +int hp
+  +int xp
+  --
+  +applyDamage(int)
+  +heal(int)
+}
+
+class MapBoard {
+  +UUID id
+  +UUID campaignId
+  +String name
+  +String imageUrl
+  +int gridSize
+}
+
+class Token {
+  +UUID id
+  +UUID mapId
+  +UUID characterId   ' nullable (NPC tokens)
+  +float x
+  +float y
+  +float rotation
+  +boolean visibleToPlayers
+  --
+  +move(x,y)
+  +rotate(deg)
+}
+
+class Item {
+  +UUID id
+  +String name
+  +String description
+  +int quantity
+}
+
+class Inventory {
+  +UUID id
+  +UUID characterId
+}
+
+class InventoryItem {
+  +UUID inventoryId
+  +UUID itemId
+  +int quantity
+}
+
+class DiceRoll {
+  +UUID id
+  +UUID sessionId
+  +UUID rollerId
+  +String expression
+  +String result
+  +Date rolledAt
+}
+
+class ChatMessage {
+  +UUID id
+  +UUID sessionId
+  +UUID senderId
+  +String content
+  +Date sentAt
+}
+
+' Relações
+User "1" --> "0..*" Campaign : owns
+Campaign "1" --> "0..*" GameSession : has
+GameSession "1" --> "0..*" SessionParticipant : includes
+User "0..*" <-- "0..*" SessionParticipant : participants
+
+User "1" --> "0..*" Character : creates
+Campaign "1" --> "0..*" Character : contains
+
+Campaign "1" --> "0..*" MapBoard : has
+MapBoard "1" --> "0..*" Token : shows
+Character "0..1" <-- "0..*" Token : represented_by
+
+Character "1" --> "1" Inventory : owns
+Inventory "1" --> "0..*" InventoryItem : contains
+InventoryItem "*" --> "1" Item : item
+
+GameSession "1" --> "0..*" DiceRoll : logs
+GameSession "1" --> "0..*" ChatMessage : messages
+User "1" --> "0..*" DiceRoll : rolled_by
+User "1" --> "0..*" ChatMessage : sent_by
+
+@enduml
